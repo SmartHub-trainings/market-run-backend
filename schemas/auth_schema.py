@@ -1,11 +1,12 @@
 from pydantic import BaseModel, EmailStr
 
 class RegisterSchema(BaseModel):
-    username: str
     email:EmailStr
-    full_name:str |None = None
+    first_name:str
+    last_name:str
+    phone:str
     password:str
 
 class LoginSchema(BaseModel):
-    username:str
+    email:EmailStr
     password:str
