@@ -3,7 +3,7 @@
 from datetime import datetime,timedelta
 from fastapi import HTTPException
 from fastapi import APIRouter,Depends
-from schemas.auth_schema import RegisterSchema,LoginSchema
+from schemas.auth_schema import RegisterSchema,LoginSchema,VerifyEmailSchema
 from models import User,get_db,UserOTP
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -75,20 +75,55 @@ async def login(payload: LoginSchema,db:AsyncSession=Depends(get_db)):
         "username": user
     }
 
-
 @auth_router.post("/verify-email")
-async def verify_user_otp(payload:dict,db:AsyncSession=Depends(get_db)):
-    otp =payload["otp"]
-    otp_query = select(UserOTP).where(UserOTP.otp==otp)
-    otp_exists = (await db.execute(otp_query)).scalar_one_or_none()
-    if not otp_exists:
-        raise HTTPException(status_code=400,detail="Invalid OTP")
+async def verify_user_otp(
+    payload: VerifyEmailSchema,
+    db: AsyncSession = Depends(get_db)
+):
+    try:
+        otp = payload.otp
 
-    is_expired = otp_exists.expires_at<datetime.now()
+        otp_query = select(UserOTP).where(UserOTP.otp == otp)
+        result = await db.execute(otp_query)
+        otp_exists = result.scalar_one_or_none()
 
+        if not otp_exists:
+            raise HTTPException(
+                status_code=400,
+                detail="Invalid OTP"
+            )
 
+        if otp_exists.expires_at < datetime.now():
+            raise HTTPException(
+                status_code=400,
+                detail="OTP has expired"
+            )
 
+        user_query = select(User).where(User.id == otp_exists.user_id)
+        result = await db.execute(user_query)
+        user = result.scalar_one_or_none()
 
+        if not user:
+            raise HTTPException(
+                status_code=404,
+                detail="User not found"
+            )
 
+        user.is_verified = True
 
+        await db.commit()
 
+        return {
+            "message": "Email verified successfully"
+        }
+
+    except HTTPException:
+        raise
+
+    except Exception:
+        await db.rollback()
+
+        raise HTTPException(
+            status_code=500,
+            detail="An error occurred while verifying email"
+        )
