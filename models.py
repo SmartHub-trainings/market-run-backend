@@ -6,29 +6,8 @@ import os
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column
 from sqlalchemy import Boolean, String, DateTime,UUID
 from datetime import datetime
-from sqlalchemy.ext.asyncio import  create_async_engine,async_sessionmaker
 import uuid
-
-load_dotenv()
-
-DATABASE_URL = os.getenv("DB_URL")
-# type hint
-
-engine= create_async_engine(DATABASE_URL)
-SessionLocal= async_sessionmaker(autocommit= False, autoflush= False, bind= engine)
-
-
-class Base(DeclarativeBase):
-    pass
-
-async def init_models():
-    async with engine.begin() as conn:
-        await conn.run_sync(Base.metadata.create_all)
-
-async def get_db():
-     async with SessionLocal() as db:
-        yield db
-
+from config import Base, engine, init_models, SessionLocal
 
 
 class User(Base):

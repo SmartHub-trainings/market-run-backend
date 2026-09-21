@@ -5,4 +5,4 @@ import os
 
 load_dotenv()
 
-DATABASE_URL = os.get_env("DB_URL")
+DATABASE_URL = os.getenv("DB_URL")
