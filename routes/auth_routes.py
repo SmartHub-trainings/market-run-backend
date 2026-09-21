@@ -9,6 +9,7 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 from random import choices
 from config import password_context, get_db
+from uuid import UUID
 
 auth_router = APIRouter(tags=["Authentication"])
 
@@ -17,39 +18,41 @@ auth_router = APIRouter(tags=["Authentication"])
 @auth_router.post("/register")
 async def register(payload: RegisterSchema, db:AsyncSession=Depends(get_db)):
     try:
-        async with db.begin():
+        # async with db.begin():
 
-            user_query = select(User).where(User.email==payload.email)
-            user_exists = (await db.execute(user_query)).scalar_one_or_none()
-                
-            if user_exists:
-                raise HTTPException(status_code=409,
-                detail="User with this detail already Exist")
-
-            # new_user = User(
-            #     email=payload.email,
-            #     first_name=payload.first_name,
-            #     last_name=payload.last_name,
-            #     password=payload.password
-            # )
-            new_user = User(**payload.model_dump(exclude={"password"}),
-                            password= password_context.hash(payload.password)
-            )
-            db.add(new_user)
-            await db.flush()
-
-            new_otp = "".join(choices("0123456789",k=6))
-            expires_at = datetime.now()+ timedelta(minutes=1)
-
-            otp = UserOTP(
-                user_id=new_user.user_id,
-                otp=new_otp,
-                expires_at=expires_at
-
-            )
-
-            db.add(otp)
+        user_query = select(User).where(User.email==payload.email)
+        user_exists = (await db.execute(user_query)).scalar_one_or_none()
             
+        if user_exists:
+            raise HTTPException(status_code=409,
+            detail="User with this detail already Exist")
+
+        # new_user = User(
+        #     email=payload.email,
+        #     first_name=payload.first_name,
+        #     last_name=payload.last_name,
+        #     password=payload.password
+        # )
+        new_user = User(**payload.model_dump(exclude={"password"}),
+                        password= password_context.hash(payload.password)
+        )
+        db.add(new_user)
+        await db.flush()
+
+        new_otp = "".join(choices("0123456789",k=6))
+        expires_at = datetime.now()+ timedelta(minutes=1)
+
+        otp = UserOTP(
+            user_id=new_user.user_id,
+            otp=new_otp,
+            expires_at=expires_at
+
+        )
+
+        db.add(otp)
+        await db.commit()
+        await db.refresh(new_user)
+        await db.refresh(otp)
         return {
             "message":"User created successfully",
             "data":{"user":new_user,"otp":otp}
@@ -58,6 +61,13 @@ async def register(payload: RegisterSchema, db:AsyncSession=Depends(get_db)):
         print(e)
         raise HTTPException(status_code=e.status_code or 500,
         detail =e.detail or "Internal Server Error")
+        
+    except Exception as e:
+        await db.rollback()
+        print (e) 
+        raise HTTPException(status_code= 500, detail= "Something went wrong")
+
+
         
     
 
@@ -92,6 +102,32 @@ async def verify_user_otp(payload:dict,db:AsyncSession=Depends(get_db)):
 
 
 
+@auth_router.post("/resend-otp")
+async def resend_otp(user_id: UUID, db:AsyncSession=Depends(get_db)):
+    otp_query= select(UserOTP).where(UserOTP.user_id==user_id)
+    otp_exists= (await db.execute(otp_query)).scalar_one_or_none()
+    if not otp_exists:
+        raise HTTPException (
+            status_code= 404,
+            detail= "OTP not found"
+        )
+    if otp_exists.expires_at > datetime.now():
+        raise HTTPException (
+            status_code= 400,
+            detail= "OTP has not expired"
+        )
+    new_otp = "".join(choices("0123456789",k=6))
+    otp_exists.otp = new_otp
+    otp_exists.expires_at = datetime.now() + timedelta(minutes=1)
+
+    await db.commit()
+    await db.refresh(otp_exists)
+
+    return {
+        "message": "OTP resent",
+        "otp": new_otp,
+        "expires_at": otp_exists.expires_at
+    }
 
 
 
