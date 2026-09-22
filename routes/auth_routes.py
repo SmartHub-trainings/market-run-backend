@@ -4,15 +4,24 @@ from datetime import datetime,timedelta
 from fastapi import HTTPException
 from fastapi import APIRouter,Depends
 from models import User,UserOTP
-from schemas.auth_schema import RegisterSchema,LoginSchema,VerifyEmailSchema
-from sqlalchemy import select
+from schemas.auth_schema import RegisterSchema,LoginSchema,VerifyEmailSchema,ResendOTPSchema
+from sqlalchemy import select,delete
 from sqlalchemy.ext.asyncio import AsyncSession
 from random import choices
 from config import password_context, get_db
-from uuid import UUID
+from secret import OTP_EXPIRATION
+
 
 auth_router = APIRouter(tags=["Authentication"])
 
+class GenerateOTP:
+    otp:str
+    expires_at:datetime
+
+def generate_otp()->GenerateOTP:
+    otp = "".join(choices("0123456789",k=6))
+    expires_at = datetime.now()+ timedelta(minutes=OTP_EXPIRATION)
+    return {"otp":otp,"expires_at":expires_at}
 
 
 @auth_router.post("/register")
@@ -38,9 +47,10 @@ async def register(payload: RegisterSchema, db:AsyncSession=Depends(get_db)):
         )
         db.add(new_user)
         await db.flush()
+        otp_result=generate_otp()
 
-        new_otp = "".join(choices("0123456789",k=6))
-        expires_at = datetime.now()+ timedelta(minutes=1)
+        new_otp = otp_result.otp
+        expires_at = otp_result.expires_at
 
         otp = UserOTP(
             user_id=new_user.user_id,
@@ -53,6 +63,7 @@ async def register(payload: RegisterSchema, db:AsyncSession=Depends(get_db)):
         await db.commit()
         await db.refresh(new_user)
         await db.refresh(otp)
+        ## send email to the user
         return {
             "message":"User created successfully",
             "data":{"user":new_user,"otp":otp}
@@ -122,6 +133,8 @@ async def verify_user_otp(
 
         await db.commit()
 
+        ## send  welcome email
+
         return {
             "message": "Email verified successfully",
             "statusCode":200,
@@ -135,40 +148,47 @@ async def verify_user_otp(
             detail=e.detail or "An error occurred while verifying email"
         )
 
+
+
+
 @auth_router.post("/resend-otp")
-async def resend_otp(user_id: UUID, db:AsyncSession=Depends(get_db)):
+async def resend_otp(body:ResendOTPSchema, db:AsyncSession=Depends(get_db)):
     try:
-        otp_query= select(UserOTP).where(UserOTP.user_id==user_id)
+        user_query = select(User).where(User.email==body.email)
+        user = (await db.execute(user_query)).scalar_one_or_none()
+
+        if not user:
+            raise HTTPException(status_code=404,detail="Your account does not exist. Please, register again.")
+            
+        otp_query= select(UserOTP).where(UserOTP.user_id==user.user_id)
         otp_exists= (await db.execute(otp_query)).scalar_one_or_none()
-        if not otp_exists:
-            raise HTTPException (
-                status_code= 404,
-                detail= "OTP not found"
-            )
-        if otp_exists.expires_at > datetime.now():
-            raise HTTPException (
-                status_code= 400,
-                detail= "OTP has not expired"
-            )
-        new_otp = "".join(choices("0123456789",k=6))
-        otp_exists.otp = new_otp
-        otp_exists.expires_at = datetime.now() + timedelta(minutes=1)
+        if otp_exists:
+            await db.execute(delete(UserOTP).where(UserOTP.user_id==user.user_id))
+
+        otp_result = generate_otp()
+       
+        new_otp = UserOTP(
+            otp=otp_result.otp,
+            user_id=user.user_id,
+            expires_at = otp_result.expires_at)
+
+        db.add(new_otp)
 
         await db.commit()
-        await db.refresh(otp_exists)
+        await db.refresh(new_otp)
+
+        ## send email to the user
 
         return {
             "message": "OTP resent",
-            "otp": new_otp,
-            "expires_at": otp_exists.expires_at
+            "data": new_otp,
+            "statusCode":200,
+            "success":True
         }
 
-        
-
-    except Exception:
-        await db.rollback()
-
+    
+    except HTTPException as e:
         raise HTTPException(
-            status_code=500,
-            detail="An error occurred while verifying email"
+            status_code=e.status_code or 500,
+            detail=e.detail or "An error occurred while resend OTP"
         )
