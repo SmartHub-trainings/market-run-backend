@@ -1,6 +1,6 @@
 from fastapi import FastAPI
 from routes import auth_routes
-from models import init_models
+from config import init_models
 
 
 app = FastAPI()

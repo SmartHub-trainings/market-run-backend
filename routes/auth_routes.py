@@ -3,11 +3,13 @@
 from datetime import datetime,timedelta
 from fastapi import HTTPException
 from fastapi import APIRouter,Depends
+from models import User,UserOTP
 from schemas.auth_schema import RegisterSchema,LoginSchema,VerifyEmailSchema
-from models import User,get_db,UserOTP
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 from random import choices
+from config import password_context, get_db
+from uuid import UUID
 
 auth_router = APIRouter(tags=["Authentication"])
 
@@ -16,9 +18,11 @@ auth_router = APIRouter(tags=["Authentication"])
 @auth_router.post("/register")
 async def register(payload: RegisterSchema, db:AsyncSession=Depends(get_db)):
     try:
+        # async with db.begin():
+
         user_query = select(User).where(User.email==payload.email)
         user_exists = (await db.execute(user_query)).scalar_one_or_none()
-         
+            
         if user_exists:
             raise HTTPException(status_code=409,
             detail="User with this detail already Exist")
@@ -29,10 +33,12 @@ async def register(payload: RegisterSchema, db:AsyncSession=Depends(get_db)):
         #     last_name=payload.last_name,
         #     password=payload.password
         # )
-        new_user = User(**payload.model_dump())
+        new_user = User(**payload.model_dump(exclude={"password"}),
+                        password= password_context.hash(payload.password)
+        )
         db.add(new_user)
-        await db.commit()
-        await db.refresh()
+        await db.flush()
+
         new_otp = "".join(choices("0123456789",k=6))
         expires_at = datetime.now()+ timedelta(minutes=1)
 
@@ -45,8 +51,8 @@ async def register(payload: RegisterSchema, db:AsyncSession=Depends(get_db)):
 
         db.add(otp)
         await db.commit()
-        await db.refresh()
-
+        await db.refresh(new_user)
+        await db.refresh(otp)
         return {
             "message":"User created successfully",
             "data":{"user":new_user,"otp":otp}
@@ -56,7 +62,10 @@ async def register(payload: RegisterSchema, db:AsyncSession=Depends(get_db)):
         raise HTTPException(status_code=e.status_code or 500,
         detail =e.detail or "Internal Server Error")
         
-    
+    except Exception as e:
+        await db.rollback()
+        print (e) 
+        raise HTTPException(status_code= 500, detail= "Something went wrong")
 
 
 
@@ -102,23 +111,59 @@ async def verify_user_otp(
         user_query = select(User).where(User.id == otp_exists.user_id)
         result = await db.execute(user_query)
         user = result.scalar_one_or_none()
-
         if not user:
             raise HTTPException(
                 status_code=404,
                 detail="User not found"
             )
 
-        user.is_verified = True
+
+        user.email_is_verified = True
 
         await db.commit()
 
         return {
-            "message": "Email verified successfully"
+            "message": "Email verified successfully",
+            "statusCode":200,
+            "data": user,
+            "susccess":True
         }
 
-    except HTTPException:
-        raise
+    except HTTPException as e:
+         raise HTTPException(
+            status_code=e.status_code or 500,
+            detail=e.detail or "An error occurred while verifying email"
+        )
+
+@auth_router.post("/resend-otp")
+async def resend_otp(user_id: UUID, db:AsyncSession=Depends(get_db)):
+    try:
+        otp_query= select(UserOTP).where(UserOTP.user_id==user_id)
+        otp_exists= (await db.execute(otp_query)).scalar_one_or_none()
+        if not otp_exists:
+            raise HTTPException (
+                status_code= 404,
+                detail= "OTP not found"
+            )
+        if otp_exists.expires_at > datetime.now():
+            raise HTTPException (
+                status_code= 400,
+                detail= "OTP has not expired"
+            )
+        new_otp = "".join(choices("0123456789",k=6))
+        otp_exists.otp = new_otp
+        otp_exists.expires_at = datetime.now() + timedelta(minutes=1)
+
+        await db.commit()
+        await db.refresh(otp_exists)
+
+        return {
+            "message": "OTP resent",
+            "otp": new_otp,
+            "expires_at": otp_exists.expires_at
+        }
+
+        
 
     except Exception:
         await db.rollback()

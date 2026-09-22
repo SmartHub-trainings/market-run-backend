@@ -22,4 +22,6 @@ dependencies = [
     "typing-inspection==0.4.4",
     "uvicorn==0.52.4",
     "asyncpg>=0.31.0",
+    "passlib[bcrypt]>=1.7.4",
+    "bcrypt==4.0.1",
 ]
