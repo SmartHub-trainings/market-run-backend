@@ -17,11 +17,17 @@ auth_router = APIRouter(tags=["Authentication"])
 class GenerateOTP:
     otp:str
     expires_at:datetime
+    def __init__(self,otp:str, expires_at:datetime):
+        self.otp=otp
+        self.expires_at=expires_at 
 
 def generate_otp()->GenerateOTP:
     otp = "".join(choices("0123456789",k=6))
     expires_at = datetime.now()+ timedelta(minutes=OTP_EXPIRATION)
-    return {"otp":otp,"expires_at":expires_at}
+    return GenerateOTP(
+        otp,
+        expires_at
+    )
 
 
 @auth_router.post("/register")
@@ -119,7 +125,7 @@ async def verify_user_otp(
                 detail="OTP has expired"
             )
 
-        user_query = select(User).where(User.id == otp_exists.user_id)
+        user_query = select(User).where(User.user_id == otp_exists.user_id)
         result = await db.execute(user_query)
         user = result.scalar_one_or_none()
         if not user:
