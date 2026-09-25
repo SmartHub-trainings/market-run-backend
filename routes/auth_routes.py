@@ -1,32 +1,19 @@
-from datetime import datetime,timedelta
+
+
+from datetime import datetime
 from fastapi import HTTPException
 from fastapi import APIRouter,Depends
 from models import User,UserOTP
 from schemas.auth_schema import RegisterSchema,LoginSchema,VerifyEmailSchema,ResendOTPSchema
 from sqlalchemy import select,delete
 from sqlalchemy.ext.asyncio import AsyncSession
-from random import choices
 from config import password_context, get_db
 from secret import OTP_EXPIRATION, JWT_EXP_MINS, JWT_SECRET
 import jwt
 
+from routes.utils import generate_otp
 
 auth_router = APIRouter(tags=["Authentication"])
-
-class GenerateOTP:
-    otp:str
-    expires_at:datetime
-    def __init__(self,otp:str, expires_at:datetime):
-        self.otp=otp
-        self.expires_at=expires_at 
-
-def generate_otp()->GenerateOTP:
-    otp = "".join(choices("0123456789",k=6))
-    expires_at = datetime.now()+ timedelta(minutes=OTP_EXPIRATION)
-    return GenerateOTP(
-        otp,
-        expires_at
-    )
 
 
 @auth_router.post("/register")
