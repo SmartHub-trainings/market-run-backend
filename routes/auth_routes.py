@@ -8,6 +8,9 @@ from schemas.auth_schema import RegisterSchema,LoginSchema,VerifyEmailSchema,Res
 from sqlalchemy import select,delete
 from sqlalchemy.ext.asyncio import AsyncSession
 from config import password_context, get_db
+from secret import OTP_EXPIRATION, JWT_EXP_MINS, JWT_SECRET
+import jwt
+
 from routes.utils import generate_otp
 
 auth_router = APIRouter(tags=["Authentication"])
@@ -71,18 +74,49 @@ async def register(payload: RegisterSchema, db:AsyncSession=Depends(get_db)):
 
 @auth_router.post("/login")
 async def login(payload: LoginSchema,db:AsyncSession=Depends(get_db)):
+    try:
 
-    user_query = select(User).where(User.email==payload.email)
-    user = (await db.execute(user_query)).scalar_one_or_none()
-    if not user:
-        raise HTTPException(status_code=401,detail="Invalid credientail")
+        user_query = select(User).where(User.email==payload.email)
+        user = (await db.execute(user_query)).scalar_one_or_none()
+        if not user:
+            raise HTTPException(status_code=401,detail="Invalid credientail")
 
-    if not user.email_is_verified:
-        raise HTTPException(status_code=401,detail="Email not verified. Please, verify your email")
-    return {
-        "message": "Login successful",
-        "username": user
-    }
+        if not user.email_is_verified:
+            raise HTTPException(status_code=401,detail="Email not verified. Please, verify your email")
+
+        is_password = password_context.verify(payload.password,user.password)
+        if not is_password:
+            raise HTTPException (status_code= 401, detail= "Invalid credentials")
+            
+        jwt_payload= {
+            "user_id": str(user.user_id),
+            "role": user.role,
+            "exp_at": (datetime.now() + timedelta(minutes= JWT_EXP_MINS)).isoformat()
+        }
+
+        token= jwt.encode(jwt_payload, JWT_SECRET, algorithm= 'HS256')
+        data= {
+            "access_token": token,
+            "user": user
+        }
+        return {
+            "message": "Login successful",
+            "data": data
+        }
+
+    except HTTPException as e:
+        print (e)
+        raise HTTPException (
+            status_code= e.status_code or 500, 
+            detail= e.detail or "Internal server error"
+        )
+    except Exception as f:
+        print (f)
+        raise HTTPException(
+            status_code= 500,
+            detail= "Internal Server Error"
+        )
+
 
 @auth_router.post("/verify-email")
 async def verify_user_otp(
