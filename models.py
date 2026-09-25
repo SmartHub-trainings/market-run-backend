@@ -32,6 +32,28 @@ class UserOTP(Base):
     user_id :Mapped[uuid.UUID]= mapped_column(UUID(as_uuid=True),nullable=False)
 
 
+"""
+Vendors submit an application containing storefront name, category,
+ description, bank account details, 
+and a business-owner name. Applications enter a pending queue for admin review.
+"""
+
+class VendorApplication(Base):
+    __tablename__ = "vendor_applications"
+
+    id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True),
+                                                 primary_key= True,
+                                                 default=uuid.uuid4)
+    store_name: Mapped[str] = mapped_column(String, nullable= False)
+    category: Mapped[str] = mapped_column(String, nullable= False)
+    description: Mapped[str] = mapped_column(String, nullable= False)
+    bank_name: Mapped[str] = mapped_column(String, nullable= False)
+    bank_account_number: Mapped[str] = mapped_column(String(10), nullable= False)
+    bank_account_name: Mapped[str] = mapped_column(String, nullable= False)
+    status: Mapped[str] = mapped_column(String, default= "pending")
+    user_id :Mapped[uuid.UUID]= mapped_column(UUID(as_uuid=True),nullable=False)
+
+
 
 
 
