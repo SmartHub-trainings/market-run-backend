@@ -1,6 +1,7 @@
 
 from pydantic import BaseModel,Field
 from datetime import datetime
+from uuid import UUID
 
 
 """
@@ -22,8 +23,8 @@ class VendorApplicationSchema(BaseModel):
     bank_details:BankAccountDetails
 
 class VendorApplicationWithId(VendorApplicationSchema):
-    id: str
-    user_id: str
+    id: UUID
+    user_id: UUID
     created_at:datetime
     updated_at:datetime
     

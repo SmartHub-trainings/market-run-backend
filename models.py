@@ -16,7 +16,7 @@ class User(Base):
     last_name: Mapped[str] = mapped_column(String, nullable= False)
     password: Mapped[str] = mapped_column(String, nullable= False)
     phone: Mapped[str] = mapped_column(String, nullable= False)
-    role: Mapped[str] = mapped_column(String, default= "user")
+    #role: Mapped[str] = mapped_column(String, default= "user")
     email_is_verified: Mapped[bool] = mapped_column(Boolean, default= False)
     phone_is_verified: Mapped[bool] = mapped_column(Boolean, default= False)
    

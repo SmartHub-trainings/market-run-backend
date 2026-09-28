@@ -6,6 +6,8 @@ from secret import DATABASE_URL
 from passlib.context import CryptContext
 from datetime import datetime
 from sqlalchemy import DateTime
+from fastapi.security import HTTPBearer
+
 
 engine= create_async_engine(DATABASE_URL)
 SessionLocal= async_sessionmaker(autocommit= False, autoflush= False, bind= engine)
@@ -23,3 +25,5 @@ async def init_models():
 async def get_db():
      async with SessionLocal() as db:
         yield db
+
+bearer_scheme= HTTPBearer()
