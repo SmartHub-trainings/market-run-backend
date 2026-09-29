@@ -1,5 +1,6 @@
 from sqlalchemy.orm import Mapped, mapped_column
-from sqlalchemy import Boolean, String, DateTime,UUID
+from sqlalchemy import Boolean, String, DateTime,UUID,Integer,Float,JSON,ForeignKey
+from sqlalchemy.orm import relationship
 from datetime import datetime
 import uuid
 from config import Base
@@ -53,6 +54,32 @@ class VendorApplication(Base):
     status: Mapped[str] = mapped_column(String, default= "pending")
     user_id :Mapped[uuid.UUID]= mapped_column(UUID(as_uuid=True),nullable=False)
 
+
+
+"""Approved vendors can create, edit, and delete their own products.
+ A product carries name, description, 
+price in NGN, category, up to five images, and inventory count."""
+
+class Product(Base):
+    __tablename__ = "products"
+
+    id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True),
+                                                 primary_key= True,
+                                                 default=uuid.uuid4)
+    name: Mapped[str] = mapped_column(String, nullable= False)
+    description: Mapped[str] = mapped_column(String, nullable= False)
+    price: Mapped[float] = mapped_column(Float, nullable= False)
+    category: Mapped[str] = mapped_column(String, nullable= False)
+    images: Mapped[list] = mapped_column(JSON, nullable= False)
+    stock: Mapped[int] = mapped_column(Integer, nullable= False)
+    status: Mapped[str] = mapped_column(String, nullable= False,default='draft')
+    user_id : Mapped[uuid.UUID]= mapped_column(ForeignKey("users.user_id"), nullable=False)
+    user: Mapped["User"] = relationship()
+    store_id :Mapped[uuid.UUID]= mapped_column(ForeignKey("vendor_applications.id"), nullable= False)
+    store: Mapped["VendorApplication"] = relationship()
+
+    
+    
 
 
 

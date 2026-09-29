@@ -217,42 +217,5 @@ async def resend_otp(body:ResendOTPSchema, db:AsyncSession=Depends(get_db)):
             detail=e.detail or "An error occurred while resend OTP"
         )
     
-@auth_router.patch("/{application_id}/status")
-async def update_application_status(
-    application_id: uuid.UUID,
-    data: ApplicationStatusUpdate,
-    db: AsyncSession = Depends(get_db),
-):
-    result = await db.execute(
-        select(VendorApplication).where(VendorApplication.id == application_id)
-    )
-
-    application = result.scalar_one_or_none()
-
-    if application is None:
-        raise HTTPException(
-            status_code=404,
-            detail="Application not found",
-        )
-
-    if application.status != "pending":
-        raise HTTPException(
-            status_code=404,
-            detail=f"Application has already been {application.status}",
-        )
-
-    application.status = data.status
-
-    await db.commit()
-    await db.refresh(application)
-
-    return {
-        "message": f"Application {data.status.value} successfully",
-        "application": {
-            "id": application.id,
-            "status": application.status.value,
-        },
-    }
-
 
     

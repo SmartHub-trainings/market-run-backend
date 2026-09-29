@@ -2,6 +2,7 @@
 from pydantic import BaseModel,Field
 from datetime import datetime
 from uuid import UUID
+from enum import Enum
 
 
 """
@@ -25,6 +26,7 @@ class VendorApplicationSchema(BaseModel):
 class VendorApplicationWithId(VendorApplicationSchema):
     id: UUID
     user_id: UUID
+    status:str
     created_at:datetime
     updated_at:datetime
     
@@ -34,9 +36,16 @@ class VendorApplicationResponse(BaseModel):
     status_code:int
     data:VendorApplicationWithId
     message:str
+
+class ApplicationStatusUpdateEnums(str,Enum):
+    ACCEPT = "accept"
+    REJECT = "reject"
+    
     
 class ApplicationStatusUpdate(BaseModel):
-    status: str
+    status: ApplicationStatusUpdateEnums
+
+    
     
 
 

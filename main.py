@@ -1,5 +1,5 @@
 from fastapi import FastAPI
-from routes import auth_routes,vendor_routes
+from routes import auth_routes,vendor_routes,product_routes
 from config import init_models
 
 
@@ -13,6 +13,7 @@ async def startup_event():
 
 app.include_router(auth_routes.auth_router,prefix="/auth")
 app.include_router(vendor_routes.vendor_router,prefix="/vendors")
+app.include_router(product_routes.product_router,prefix="/products")
 
 
 
