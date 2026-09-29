@@ -3,14 +3,15 @@
 from datetime import datetime,timedelta
 from fastapi import HTTPException
 from fastapi import APIRouter,Depends
-from models import User,UserOTP
+from models import User,UserOTP,VendorApplication
 from schemas.auth_schema import RegisterSchema,LoginSchema,VerifyEmailSchema,ResendOTPSchema
+from schemas.vendor_schema import ApplicationStatusUpdate
 from sqlalchemy import select,delete
 from sqlalchemy.ext.asyncio import AsyncSession
 from config import password_context, get_db
 from secret import OTP_EXPIRATION, JWT_EXP_MINS, JWT_SECRET
 import jwt
-
+import uuid
 from routes.utils import generate_otp
 
 auth_router = APIRouter(tags=["Authentication"])
@@ -215,3 +216,43 @@ async def resend_otp(body:ResendOTPSchema, db:AsyncSession=Depends(get_db)):
             status_code=e.status_code or 500,
             detail=e.detail or "An error occurred while resend OTP"
         )
+    
+@auth_router.patch("/{application_id}/status")
+async def update_application_status(
+    application_id: uuid.UUID,
+    data: ApplicationStatusUpdate,
+    db: AsyncSession = Depends(get_db),
+):
+    result = await db.execute(
+        select(VendorApplication).where(VendorApplication.id == application_id)
+    )
+
+    application = result.scalar_one_or_none()
+
+    if application is None:
+        raise HTTPException(
+            status_code=404,
+            detail="Application not found",
+        )
+
+    if application.status != "pending":
+        raise HTTPException(
+            status_code=404,
+            detail=f"Application has already been {application.status}",
+        )
+
+    application.status = data.status
+
+    await db.commit()
+    await db.refresh(application)
+
+    return {
+        "message": f"Application {data.status.value} successfully",
+        "application": {
+            "id": application.id,
+            "status": application.status.value,
+        },
+    }
+
+
+    

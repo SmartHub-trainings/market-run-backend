@@ -34,6 +34,9 @@ class VendorApplicationResponse(BaseModel):
     data:VendorApplicationWithId
     message:str
     
+class ApplicationStatusUpdate(BaseModel):
+    status: str
+    
 
 
     
