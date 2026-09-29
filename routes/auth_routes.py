@@ -91,8 +91,8 @@ async def login(payload: LoginSchema,db:AsyncSession=Depends(get_db)):
             
         jwt_payload= {
             "user_id": str(user.user_id),
-            "role": user.role,
-            "exp_at": (datetime.now() + timedelta(minutes= JWT_EXP_MINS)).isoformat()
+            #"role": user.role,
+            "exp": (datetime.now() + timedelta(minutes= JWT_EXP_MINS)).timestamp()
         }
 
         token= jwt.encode(jwt_payload, JWT_SECRET, algorithm= 'HS256')
