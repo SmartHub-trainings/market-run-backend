@@ -6,6 +6,11 @@ from secret import OTP_EXPIRATION, JWT_SECRET
 import jwt
 from config import bearer_scheme
 from fastapi import HTTPException, Depends
+from models import User
+from uuid import UUID
+from sqlalchemy import select
+from sqlalchemy.ext.asyncio import AsyncSession
+from config import get_db
 
 
 def generate_otp()->GenerateOTP:
@@ -75,3 +80,23 @@ def format_vendor_response(application:VendorApplicationSchema):
         "created_at": application.created_at,
         "updated_at": application.updated_at
     }
+async def require_admin(
+        payload:dict = Depends(get_current_user),
+        db:AsyncSession =Depends(get_db),
+):
+    result =await db.execute(
+        select(User).where(User.user_id==UUID(payload["user_id"]))
+    )
+    user=result.scalar_one_or_none()
+
+    if user is None:
+        raise HTTPException(
+            status_code=401,
+            detail="User not found"
+        )
+    if user.role != "admin":
+        raise HTTPException(
+            status_code=403,
+            detail="Admin only"
+        )
+    return user
