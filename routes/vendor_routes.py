@@ -99,6 +99,27 @@ async def update_application_status(
 
 
 
+@vendor_router.get("/stores")
+async def get_vendor_stores(current_user=Depends(get_current_user),db:AsyncSession=Depends(get_db)):
+    current_user_id =current_user.get("user_id")
+
+    query= (select(VendorApplication)
+            .where(VendorApplication.user_id==current_user_id))
+
+    applications = (await db.execute(query)).scalars().all()
+    
+    return {
+        "message": "Vendor applications retrieved successfully",
+        "success": True,
+        "status_code": 200,
+        "data": applications,
+    }
+    
+
+    
+
+
+
     
 
 

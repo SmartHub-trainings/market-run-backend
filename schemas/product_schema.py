@@ -12,5 +12,6 @@ class ProductCreate(BaseModel):
     description:str
     price:float
     category:str
-    images:list[str]
+    images:list[str]|None=[]
     stock:int
+    store_id:UUID
