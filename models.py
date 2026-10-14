@@ -20,6 +20,7 @@ class User(Base):
     #role: Mapped[str] = mapped_column(String, default= "user")
     email_is_verified: Mapped[bool] = mapped_column(Boolean, default= False)
     phone_is_verified: Mapped[bool] = mapped_column(Boolean, default= False)
+    stores: Mapped[list["VendorApplication"]] = relationship(back_populates="user")
    
 
 class UserOTP(Base):
@@ -52,7 +53,8 @@ class VendorApplication(Base):
     bank_account_number: Mapped[str] = mapped_column(String(10), nullable= False)
     bank_account_name: Mapped[str] = mapped_column(String, nullable= False)
     status: Mapped[str] = mapped_column(String, default= "pending")
-    user_id :Mapped[uuid.UUID]= mapped_column(UUID(as_uuid=True),nullable=False)
+    user_id : Mapped[uuid.UUID]= mapped_column(ForeignKey("users.user_id"), nullable=False)
+    user: Mapped["User"] = relationship(back_populates="stores")
 
 
 

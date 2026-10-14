@@ -3,6 +3,7 @@ from pydantic import BaseModel,Field
 from datetime import datetime
 from uuid import UUID
 from enum import Enum
+from typing import Literal
 
 
 
@@ -15,3 +16,7 @@ class ProductCreate(BaseModel):
     images:list[str]|None=[]
     stock:int
     store_id:UUID
+    status:Literal['published','draft']='draft'
+
+class ProductUpdateStatus(BaseModel):
+    status:Literal['published','draft']='draft'

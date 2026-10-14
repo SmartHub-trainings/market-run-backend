@@ -10,9 +10,9 @@ from sqlalchemy import select,delete
 from sqlalchemy.ext.asyncio import AsyncSession
 from config import password_context, get_db
 from secret import OTP_EXPIRATION, JWT_EXP_MINS, JWT_SECRET
+from sqlalchemy.orm import selectinload
 import jwt
-import uuid
-from routes.utils import generate_otp
+from routes.utils import generate_otp,get_current_user
 
 auth_router = APIRouter(tags=["Authentication"])
 
@@ -216,6 +216,36 @@ async def resend_otp(body:ResendOTPSchema, db:AsyncSession=Depends(get_db)):
             status_code=e.status_code or 500,
             detail=e.detail or "An error occurred while resend OTP"
         )
-    
+
+@auth_router.get("/me")
+async def get_current_user_handler(current_user=Depends(get_current_user),db:AsyncSession=Depends(get_db)):
+    try:
+        user_query = (select(User)
+                        .where(User.user_id == current_user['user_id'])
+                        .options(selectinload(User.stores)))
+
+        user = (await db.execute(user_query)).scalar_one_or_none()
+
+        # store_query = select(VendorApplication).where(VendorApplication.user_id==user.user_id)
+        # stores = (await db.execute(store_query)).scalars().all()
+        
+        
+        return {
+            "message":"Profile fetched successfully",
+            "data":user,
+            "success":True,
+            "status_code":200
+        }
+    except HTTPException as e:
+        raise HTTPException(
+            status_code=e.status_code,
+            detail=e.detail
+        )
+    except Exception as e:
+        print(e)
+        raise HTTPException(
+            status_code= 500,
+            detail= "Internal Server Error"
+        )  
 
     
