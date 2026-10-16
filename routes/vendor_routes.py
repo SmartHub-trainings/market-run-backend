@@ -6,9 +6,10 @@ from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.ext.asyncio import AsyncSession
 from models import VendorApplication
 from config import get_db
-from routes.utils import get_current_user, format_vendor_response
+from routes.utils import get_current_user, format_vendor_response,require_admin
 from uuid import UUID
 from sqlalchemy import select
+from models import User
 
 
 
@@ -58,7 +59,9 @@ async def update_application_status(
     application_id:UUID,
     data: ApplicationStatusUpdate,
     db: AsyncSession = Depends(get_db),
+    admin:User = Depends(require_admin)
 ):
+
     result = await db.execute(
         select(VendorApplication).where(VendorApplication.id == application_id)
     )
