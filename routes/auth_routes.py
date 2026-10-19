@@ -20,7 +20,6 @@ auth_router = APIRouter(tags=["Authentication"])
 @auth_router.post("/register")
 async def register(payload: RegisterSchema, db:AsyncSession=Depends(get_db)):
     try:
-        # async with db.begin():
 
         user_query = select(User).where(User.email==payload.email)
         user_exists = (await db.execute(user_query)).scalar_one_or_none()
