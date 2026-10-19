@@ -13,6 +13,8 @@ from secret import OTP_EXPIRATION, JWT_EXP_MINS, JWT_SECRET
 from sqlalchemy.orm import selectinload
 import jwt
 from routes.utils import generate_otp,get_current_user
+from services.auth_services import (create_user_service,login_user_service,verify_email_service,
+resend_otp_service,get_current_user_service)
 
 auth_router = APIRouter(tags=["Authentication"])
 
@@ -22,40 +24,7 @@ async def register(payload: RegisterSchema, db:AsyncSession=Depends(get_db)):
     try:
         # async with db.begin():
 
-        user_query = select(User).where(User.email==payload.email)
-        user_exists = (await db.execute(user_query)).scalar_one_or_none()
-            
-        if user_exists:
-            raise HTTPException(status_code=409,
-            detail="User with this detail already Exist")
-
-        # new_user = User(
-        #     email=payload.email,
-        #     first_name=payload.first_name,
-        #     last_name=payload.last_name,
-        #     password=payload.password
-        # )
-        new_user = User(**payload.model_dump(exclude={"password"}),
-                        password= password_context.hash(payload.password)
-        )
-        db.add(new_user)
-        await db.flush()
-        otp_result=generate_otp()
-
-        new_otp = otp_result.otp
-        expires_at = otp_result.expires_at
-
-        otp = UserOTP(
-            user_id=new_user.user_id,
-            otp=new_otp,
-            expires_at=expires_at
-
-        )
-
-        db.add(otp)
-        await db.commit()
-        await db.refresh(new_user)
-        await db.refresh(otp)
+        new_user,otp = await create_user_service(db,payload)
         ## send email to the user
         return {
             "message":"User created successfully",
@@ -77,29 +46,8 @@ async def register(payload: RegisterSchema, db:AsyncSession=Depends(get_db)):
 async def login(payload: LoginSchema,db:AsyncSession=Depends(get_db)):
     try:
 
-        user_query = select(User).where(User.email==payload.email)
-        user = (await db.execute(user_query)).scalar_one_or_none()
-        if not user:
-            raise HTTPException(status_code=401,detail="Invalid credientail")
+        data= await login_user_service(db,payload)
 
-        if not user.email_is_verified:
-            raise HTTPException(status_code=401,detail="Email not verified. Please, verify your email")
-
-        is_password = password_context.verify(payload.password,user.password)
-        if not is_password:
-            raise HTTPException (status_code= 401, detail= "Invalid credentials")
-            
-        jwt_payload= {
-            "user_id": str(user.user_id),
-            #"role": user.role,
-            "exp": (datetime.now() + timedelta(minutes= JWT_EXP_MINS)).timestamp()
-        }
-
-        token= jwt.encode(jwt_payload, JWT_SECRET, algorithm= 'HS256')
-        data= {
-            "access_token": token,
-            "user": user
-        }
         return {
             "message": "Login successful",
             "data": data
@@ -125,45 +73,13 @@ async def verify_user_otp(
     db: AsyncSession = Depends(get_db)
 ):
     try:
-        otp = payload.otp
-
-        otp_query = select(UserOTP).where(UserOTP.otp == otp)
-        result = await db.execute(otp_query)
-        otp_exists = result.scalar_one_or_none()
-
-        if not otp_exists:
-            raise HTTPException(
-                status_code=400,
-                detail="Invalid OTP"
-            )
-
-        if otp_exists.expires_at < datetime.now():
-            raise HTTPException(
-                status_code=400,
-                detail="OTP has expired"
-            )
-
-        user_query = select(User).where(User.user_id == otp_exists.user_id)
-        result = await db.execute(user_query)
-        user = result.scalar_one_or_none()
-        if not user:
-            raise HTTPException(
-                status_code=404,
-                detail="User not found"
-            )
-
-
-        user.email_is_verified = True
-
-        await db.commit()
-
+        user= await verify_email_service(db,payload)
         ## send  welcome email
-
         return {
             "message": "Email verified successfully",
             "statusCode":200,
             "data": user,
-            "susccess":True
+            "success":True
         }
 
     except HTTPException as e:
@@ -178,29 +94,7 @@ async def verify_user_otp(
 @auth_router.post("/resend-otp")
 async def resend_otp(body:ResendOTPSchema, db:AsyncSession=Depends(get_db)):
     try:
-        user_query = select(User).where(User.email==body.email)
-        user = (await db.execute(user_query)).scalar_one_or_none()
-
-        if not user:
-            raise HTTPException(status_code=404,detail="Your account does not exist. Please, register again.")
-            
-        otp_query= select(UserOTP).where(UserOTP.user_id==user.user_id)
-        otp_exists= (await db.execute(otp_query)).scalar_one_or_none()
-        if otp_exists:
-            await db.execute(delete(UserOTP).where(UserOTP.user_id==user.user_id))
-
-        otp_result = generate_otp()
-       
-        new_otp = UserOTP(
-            otp=otp_result.otp,
-            user_id=user.user_id,
-            expires_at = otp_result.expires_at)
-
-        db.add(new_otp)
-
-        await db.commit()
-        await db.refresh(new_otp)
-
+        new_otp= await resend_otp_service(db,body)
         ## send email to the user
 
         return {
@@ -220,11 +114,7 @@ async def resend_otp(body:ResendOTPSchema, db:AsyncSession=Depends(get_db)):
 @auth_router.get("/me")
 async def get_current_user_handler(current_user=Depends(get_current_user),db:AsyncSession=Depends(get_db)):
     try:
-        user_query = (select(User)
-                        .where(User.user_id == current_user['user_id'])
-                        .options(selectinload(User.stores)))
-
-        user = (await db.execute(user_query)).scalar_one_or_none()
+        user= await get_current_user_service(db,current_user["user_id"])
 
         # store_query = select(VendorApplication).where(VendorApplication.user_id==user.user_id)
         # stores = (await db.execute(store_query)).scalars().all()
