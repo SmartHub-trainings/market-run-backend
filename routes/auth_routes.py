@@ -26,7 +26,7 @@ async def register(payload: RegisterSchema, db:AsyncSession=Depends(get_db)):
             
         if user_exists:
             raise HTTPException(status_code=409,
-            detail="User with this detail already Exist")
+            detail="User with this email already Exist")
 
         # new_user = User(
         #     email=payload.email,
