@@ -22,7 +22,6 @@ auth_router = APIRouter(tags=["Authentication"])
 @auth_router.post("/register")
 async def register(payload: RegisterSchema, db:AsyncSession=Depends(get_db)):
     try:
-        # async with db.begin():
 
         new_user,otp = await create_user_service(db,payload)
         ## send email to the user
