@@ -1,9 +1,19 @@
 from fastapi import FastAPI
 from routes import auth_routes,vendor_routes,product_routes
 from config import init_models
+from fastapi.middleware.cors import CORSMiddleware
+
 
 
 app = FastAPI()
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["http://localhost:3000"],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 
 @app.on_event("startup")
 async def startup_event():

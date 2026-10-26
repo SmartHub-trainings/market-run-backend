@@ -9,8 +9,9 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from models import Product,VendorApplication
 from config import get_db
 from routes.utils import get_current_user
-from sqlalchemy import select
+from sqlalchemy import select,func
 from sqlalchemy.orm import selectinload
+from math import ceil
 
 
 
@@ -46,11 +47,18 @@ async def create_product_handler(
 
 
 @product_router.get("/")
-async def get_all_products_handler(db:AsyncSession=Depends(get_db)): 
+async def get_all_products_handler(page:int|None=1,pageSize:int|None=5,db:AsyncSession=Depends(get_db)): 
     try:
         #load the stores while getting the products
+        skip = (page - 1) * pageSize
+        product_count = (await db.execute(select(func.count(Product.id)))).scalar()
+        print(product_count)
+        no_of_pages =  ceil(product_count/pageSize)
+        print(no_of_pages)
         query= (select(Product)
                 .options(selectinload(Product.store),selectinload(Product.user))
+                .limit(pageSize)
+                .offset(skip)
                 # .where(Product.status=="published")
                 )
                 
@@ -59,7 +67,8 @@ async def get_all_products_handler(db:AsyncSession=Depends(get_db)):
             "success": True,
             "status_code": 200,
             "data": products,
-            "message" : "Products retrieved successfully"
+            "message" : "Products retrieved successfully",
+            "no_of_pages" : no_of_pages
         }
     except HTTPException as e:
        
