@@ -1,7 +1,6 @@
 
 
-from services.product_services import create_product_service
-from services.product_services import get_product_by_id
+from services.product_services import create_product_service,get_product_by_id,get_all_products_service
 from uuid import UUID
 from schemas.product_schema import ProductCreate,ProductUpdateStatus
 from fastapi import APIRouter, Depends, HTTPException
@@ -9,10 +8,9 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from models import Product,VendorApplication
 from config import get_db
 from routes.utils import get_current_user
-from sqlalchemy import select,func
+from sqlalchemy import select
 from sqlalchemy.orm import selectinload
-from math import ceil
-
+from typing import Literal
 
 
 
@@ -46,23 +44,31 @@ async def create_product_handler(
         )
 
 
+
+
+#Buyers can filter by category, price range, vendor, and in-stock status. 
+#Buyers can sort by newest, price ascending, price descending, and popularity.
+#Buyers can search the catalog with free-text queries. Search matches product name, description, and 
+#vendor storefront name, ranked by relevance.
+
 @product_router.get("/")
-async def get_all_products_handler(page:int|None=1,pageSize:int|None=5,db:AsyncSession=Depends(get_db)): 
+async def get_all_products_handler(
+    page:int|None=1,
+    pageSize:int|None=5,
+    db:AsyncSession=Depends(get_db),
+    category:str|None=None,
+    min_price:float|None=None,
+    max_price:float|None=None,
+    vendor:UUID|None=None,
+    in_stock:Literal["true", "false"]|None=None,
+    sort_by:Literal["newest", "price_ascending", "price_descending"]|None="newest",
+    search:str|None=None
+    ): 
     try:
         #load the stores while getting the products
-        skip = (page - 1) * pageSize
-        product_count = (await db.execute(select(func.count(Product.id)))).scalar()
-        print(product_count)
-        no_of_pages =  ceil(product_count/pageSize)
-        print(no_of_pages)
-        query= (select(Product)
-                .options(selectinload(Product.store),selectinload(Product.user))
-                .limit(pageSize)
-                .offset(skip)
-                # .where(Product.status=="published")
-                )
                 
-        products = (await db.execute(query)).scalars().all()
+        products,no_of_pages,page_size =await get_all_products_service(
+            db,page,pageSize,category,min_price,max_price,vendor,in_stock,sort_by,search)
         return {
             "success": True,
             "status_code": 200,
@@ -77,7 +83,7 @@ async def get_all_products_handler(page:int|None=1,pageSize:int|None=5,db:AsyncS
             detail= e.detail
         )
     except Exception as h:
-        print(e)
+        print(h)
         raise HTTPException (
             status_code= 500,
             detail= "Internal Server Error"
