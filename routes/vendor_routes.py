@@ -6,7 +6,7 @@ from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.ext.asyncio import AsyncSession
 from models import VendorApplication
 from config import get_db
-from routes.utils import get_current_user, format_vendor_response
+from utils import get_current_user, format_vendor_response
 from uuid import UUID
 from sqlalchemy import select
 

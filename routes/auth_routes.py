@@ -12,7 +12,7 @@ from config import password_context, get_db
 from secret import OTP_EXPIRATION, JWT_EXP_MINS, JWT_SECRET
 from sqlalchemy.orm import selectinload
 import jwt
-from routes.utils import generate_otp,get_current_user
+from utils import generate_otp,get_current_user
 from services.auth_services import (create_user_service,login_user_service,verify_email_service,
 resend_otp_service,get_current_user_service)
 

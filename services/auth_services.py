@@ -5,10 +5,11 @@ from sqlalchemy import select,delete
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 from config import password_context
-from routes.utils import generate_otp
+from utils import generate_otp
 from datetime import datetime,timedelta
 from secret import JWT_EXP_MINS, JWT_SECRET
 import jwt
+from uuid import UUID
 
 
 async def create_user_service(db:AsyncSession, payload:RegisterSchema):

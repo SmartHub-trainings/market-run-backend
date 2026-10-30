@@ -80,6 +80,18 @@ class Product(Base):
     store_id :Mapped[uuid.UUID]= mapped_column(ForeignKey("vendor_applications.id"), nullable= False)
     store: Mapped["VendorApplication"] = relationship()
 
+class CartItem(Base):
+    __tablename__="cart_items"
+
+    id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True),
+                                                 primary_key= True,
+                                                 default=uuid.uuid4)
+    user_id : Mapped[uuid.UUID]= mapped_column(ForeignKey("users.user_id"), nullable=False)
+    user: Mapped["User"] = relationship()
+    product_id : Mapped[uuid.UUID]= mapped_column(ForeignKey("products.id"), nullable=False)
+    product: Mapped["Product"] = relationship()
+    qty:Mapped[int]= mapped_column(Integer,nullable=False,default=1)
+
     
     
 
