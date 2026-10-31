@@ -92,7 +92,35 @@ class CartItem(Base):
     product: Mapped["Product"] = relationship()
     qty:Mapped[int]= mapped_column(Integer,nullable=False,default=1)
 
-    
+
+class Review(Base):
+    __tablename__="reviews"
+
+    id: Mapped[uuid.UUID]= mapped_column(UUID(as_uuid=True),
+                                    primary_key=True,
+                                    default=uuid.uuid4)
+    user_id: Mapped[uuid.UUID]= mapped_column(ForeignKey("users.user_id"), nullable=False)
+    user: Mapped["User"]= relationship()
+    product_id: Mapped[uuid.UUID]= mapped_column(ForeignKey("products.id"), nullable=False)
+    product: Mapped["Product"]= relationship()
+    status: Mapped[str]= mapped_column(String, nullable=False, default="published")
+    rating: Mapped[int]= mapped_column(Integer, nullable=False)
+    text: Mapped[str]= mapped_column(String(2000), nullable=True)
+    #replies: Mapped[list["ReviewReply"]] = relationship()
+
+
+class ReviewReply(Base):
+    __tablename__ = "review_replies"
+
+    id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True),
+                                    primary_key=True,
+                                    default=uuid.uuid4)
+    vendor_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("users.user_id"), nullable=False)
+    vendor: Mapped["User"] = relationship()
+    review_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("reviews.id"), nullable=False)
+    review: Mapped["Review"] = relationship()
+    reply: Mapped[str] = mapped_column(String(2000), nullable=False) 
+
     
 
 

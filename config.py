@@ -10,7 +10,7 @@ from fastapi.security import HTTPBearer
 
 
 engine= create_async_engine(DATABASE_URL)
-SessionLocal= async_sessionmaker(autocommit= False, autoflush= False, bind= engine)
+SessionLocal= async_sessionmaker(autocommit= False, autoflush= False,expire_on_commit=False, bind= engine)
 
 password_context= CryptContext(schemes=['bcrypt'], deprecated= "auto")
 
