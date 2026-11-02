@@ -59,6 +59,14 @@ def get_current_user(cred= Depends(bearer_scheme)):
         )
 
 
+# def is_admin(current_user=Depends(get_current_user)):
+#     if current_user["role"] != "admin":
+#         raise HTTPException(
+#             status_code= 403,
+#             detail= "Access denied, admin only"
+        
+
+
 def format_vendor_response(application:VendorApplicationSchema):
     return {
             "store_name": application.store_name,
