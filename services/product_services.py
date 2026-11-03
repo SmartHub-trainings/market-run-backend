@@ -8,9 +8,11 @@ from models import Product,VendorApplication
 from math import ceil
 
 
-async def get_product_by_id(db:AsyncSession,product_id:UUID):
+async def get_product_by_id(db:AsyncSession,product_id:UUID)->Product:
     product_query = select(Product).where(Product.id == product_id)
     product = (await db.execute(product_query)).scalar_one_or_none()
+    if not product:
+        raise HTTPException(status_code=404,detail="product not found")
     return product
 
 

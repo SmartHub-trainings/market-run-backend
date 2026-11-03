@@ -121,6 +121,35 @@ class ReviewReply(Base):
     review: Mapped["Review"] = relationship()
     reply: Mapped[str] = mapped_column(String(2000), nullable=False) 
 
+class Order(Base):
+    __tablename__='orders'
+
+    id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True),
+                                    primary_key=True,
+                                    default=uuid.uuid4)
+    user_id: Mapped[uuid.UUID]= mapped_column(ForeignKey("users.user_id"), nullable=False)
+    user: Mapped["User"]= relationship()
+    total_amount :Mapped[float]= mapped_column(Float,nullable=False)
+    status: Mapped[str] = mapped_column(String(20),nullable=False,default="pending")## delivered,canceled,'sent-out'
+    payment_status: Mapped[str] = mapped_column(String(20),nullable=False,default="proccessing") # success,failed
+    items:Mapped[list["OrderItem"]]=relationship(back_populates="order")
+
+
+class OrderItem(Base):
+    __tablename__ = 'order_items'
+
+    id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True),
+                                    primary_key=True,
+                                    default=uuid.uuid4)
+    order_id: Mapped[uuid.UUID]= mapped_column(ForeignKey("orders.id"), nullable=False)
+    order: Mapped["Order"]= relationship(back_populates="items")
+    product_id: Mapped[uuid.UUID]= mapped_column(ForeignKey("products.id"), nullable=False)
+    product: Mapped["Product"]= relationship()
+    qty :Mapped[int] = mapped_column(Integer,nullable=False, default=1)
+    unit_price :Mapped[float] = mapped_column(Float,nullable=False)
+
+
+
     
 
 

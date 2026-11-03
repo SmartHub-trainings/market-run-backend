@@ -39,6 +39,8 @@ async def register(payload: RegisterSchema, db:AsyncSession=Depends(get_db)):
         print (e) 
         raise HTTPException(status_code= 500, detail= "Something went wrong")
 
+# ACID  pricipal
+
 
 
 @auth_router.post("/login")

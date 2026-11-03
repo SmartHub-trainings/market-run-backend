@@ -74,8 +74,8 @@ async def get_vendor_rating(vendor_id: UUID, db: AsyncSession=Depends(get_db)):
         )
 
 
-@review_router.patch("/hide-review/{review_id}")
-async def hide_review(
+@review_router.patch("/visibilities/{review_id}")
+async def update_review_visibility(
     review_id: UUID,
     payload: ReviewStatusUpdate,
     db:AsyncSession=Depends(get_db),
