@@ -12,7 +12,7 @@ import jwt
 from uuid import UUID
 
 
-async def create_user_service(db:AsyncSession, payload:RegisterSchema):
+async def create_user_service(db:AsyncSession, payload:RegisterSchema)->tuple[User,UserOTP]:
         user_query = select(User).where(User.email==payload.email)
         user_exists = (await db.execute(user_query)).scalar_one_or_none()
             
@@ -113,7 +113,7 @@ async def verify_email_service(db:AsyncSession, payload:VerifyEmailSchema):
 
 
 
-async def resend_otp_service(db:AsyncSession, body:ResendOTPSchema):
+async def resend_otp_service(db:AsyncSession, body:ResendOTPSchema)->tuple[UserOTP,User]:
     user_query = select(User).where(User.email==body.email)
     user = (await db.execute(user_query)).scalar_one_or_none()
 
@@ -136,7 +136,7 @@ async def resend_otp_service(db:AsyncSession, body:ResendOTPSchema):
 
     await db.commit()
     await db.refresh(new_otp)
-    return new_otp
+    return new_otp,user
 
 
 
