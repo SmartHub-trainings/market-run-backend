@@ -5,6 +5,8 @@ from datetime import datetime
 import uuid
 from config import Base
 
+# class Role()
+
 
 class User(Base):
     __tablename__ = "users"
@@ -20,7 +22,8 @@ class User(Base):
     #role: Mapped[str] = mapped_column(String, default= "user")
     email_is_verified: Mapped[bool] = mapped_column(Boolean, default= False)
     phone_is_verified: Mapped[bool] = mapped_column(Boolean, default= False)
-    stores: Mapped[list["VendorApplication"]] = relationship(back_populates="user")
+    stores: Mapped[list["Store"]] = relationship(back_populates="user")
+    role: Mapped[str]=mapped_column(String(20),nullable=False,default="user")
    
 
 class UserOTP(Base):
@@ -40,8 +43,8 @@ Vendors submit an application containing storefront name, category,
 and a business-owner name. Applications enter a pending queue for admin review.
 """
 
-class VendorApplication(Base):
-    __tablename__ = "vendor_applications"
+class Store(Base):
+    __tablename__ = "stores"
 
     id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True),
                                                  primary_key= True,
@@ -77,8 +80,8 @@ class Product(Base):
     status: Mapped[str] = mapped_column(String, nullable= False,default='draft')
     user_id : Mapped[uuid.UUID]= mapped_column(ForeignKey("users.user_id"), nullable=False)
     user: Mapped["User"] = relationship()
-    store_id :Mapped[uuid.UUID]= mapped_column(ForeignKey("vendor_applications.id"), nullable= False)
-    store: Mapped["VendorApplication"] = relationship()
+    store_id :Mapped[uuid.UUID]= mapped_column(ForeignKey("stores.id"), nullable= False)
+    store: Mapped["Store"] = relationship()
 
 class CartItem(Base):
     __tablename__="cart_items"

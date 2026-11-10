@@ -3,7 +3,7 @@
 from datetime import datetime,timedelta
 from fastapi import HTTPException
 from fastapi import APIRouter,Depends
-from models import User,UserOTP,VendorApplication
+from models import User,UserOTP,Store
 from schemas.auth_schema import RegisterSchema,LoginSchema,VerifyEmailSchema,ResendOTPSchema
 from schemas.vendor_schema import ApplicationStatusUpdate
 from sqlalchemy import select,delete
@@ -141,7 +141,7 @@ async def get_current_user_handler(current_user=Depends(get_current_user),db:Asy
     try:
         user= await get_current_user_service(db,current_user["user_id"])
 
-        # store_query = select(VendorApplication).where(VendorApplication.user_id==user.user_id)
+        # store_query = select(Store).where(Store.user_id==user.user_id)
         # stores = (await db.execute(store_query)).scalars().all()
         
         

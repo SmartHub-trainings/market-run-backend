@@ -1,6 +1,6 @@
 from fastapi import FastAPI
 from routes import auth_routes,vendor_routes,product_routes,order_routes,review_routes
-from config import init_models
+# from config import init_models
 from fastapi.middleware.cors import CORSMiddleware
 
 
@@ -15,9 +15,9 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-@app.on_event("startup")
-async def startup_event():
-    await init_models()
+# @app.on_event("startup")
+# async def startup_event():
+#     await init_models()
 
 
 

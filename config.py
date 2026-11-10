@@ -18,9 +18,9 @@ class Base(DeclarativeBase):
     created_at: Mapped[datetime] = mapped_column(DateTime, default= datetime.now)
     updated_at: Mapped[datetime] = mapped_column(DateTime, default= datetime.now)
 
-async def init_models():
-    async with engine.begin() as conn:
-        await conn.run_sync(Base.metadata.create_all)
+# async def init_models():
+#     async with engine.begin() as conn:
+#         await conn.run_sync(Base.metadata.create_all)
 
 async def get_db():
      async with SessionLocal() as db:

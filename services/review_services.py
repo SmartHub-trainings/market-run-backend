@@ -1,7 +1,7 @@
 from sqlalchemy.ext.asyncio import AsyncSession
 from fastapi import HTTPException
 from sqlalchemy import select,func
-from models import Review,Product,User,VendorApplication
+from models import Review,Product,User,Store
 from services.product_services import get_product_by_id
 from uuid import UUID
 
@@ -56,9 +56,9 @@ async def get_vendor_rating_service(db, vendor_id:UUID):
             status_code=404,
             detail= "Vendor not found"
         )
-    applications_query = (select(VendorApplication).
-    where(VendorApplication.user_id==vendor_id,
-    VendorApplication.status=='approved')
+    applications_query = (select(Store).
+    where(Store.user_id==vendor_id,
+    Store.status=='approved')
     )
     applications = (await db.execute(applications_query)).scalars().all()
     if not applications:

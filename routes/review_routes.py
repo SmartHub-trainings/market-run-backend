@@ -2,7 +2,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy import select,func
 from config import get_db
-from models import Review, Product,User,VendorApplication,ReviewReply
+from models import Review, Product,User,Store,ReviewReply
 from schemas.review_schema import ReviewCreate,ReviewStatusUpdate,ReviewReplyHandler
 from utils import get_current_user
 from sqlalchemy.orm import selectinload
@@ -177,9 +177,9 @@ async def send_vendor_reply(
                 status_code= 400,
                 detail= "You have already replied to this review"
             )
-        query= (select(VendorApplication)
-        .where(VendorApplication.user_id==current_user["user_id"],
-        VendorApplication.status=="approved"))
+        query= (select(Store)
+        .where(Store.user_id==current_user["user_id"],
+        Store.status=="approved"))
         vendor= (await db.execute(query)).scalar_one_or_none()
         print("here1")
         if not vendor:

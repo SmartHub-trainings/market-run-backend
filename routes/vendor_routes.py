@@ -1,10 +1,10 @@
 
 
 from schemas.vendor_schema import ApplicationStatusUpdate
-from schemas.vendor_schema import VendorApplicationSchema,VendorApplicationResponse
+from schemas.vendor_schema import StoreSchema,StoreResponse
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.ext.asyncio import AsyncSession
-from models import VendorApplication, Order, OrderItem, Product, User
+from models import Store, Order, OrderItem, Product, User
 from config import get_db
 from utils import get_current_user, format_vendor_response
 from uuid import UUID
@@ -19,16 +19,16 @@ vendor_router = APIRouter(tags=["Vendors"])
 
 @vendor_router.post("/applications")
 async def create_vendor_application_handler(
-    body:VendorApplicationSchema, 
+    body:StoreSchema, 
     db:AsyncSession=Depends(get_db), 
-    user=Depends(get_current_user)) -> VendorApplicationResponse:
+    user=Depends(get_current_user)) -> StoreResponse:
     try:
         payload= body.model_dump()
         payload['bank_account_name']= payload['bank_details']['bank_account_name']
         payload['bank_account_number']= payload['bank_details']['bank_account_number']
         payload['bank_name']= payload['bank_details']['bank_name']
         del payload['bank_details']
-        new_application= VendorApplication(
+        new_application= Store(
             **payload,
             user_id=user['user_id']
         )
@@ -62,7 +62,7 @@ async def update_application_status(
     db: AsyncSession = Depends(get_db),
 ):
     result = await db.execute(
-        select(VendorApplication).where(VendorApplication.id == application_id)
+        select(Store).where(Store.id == application_id)
     )
 
     application = result.scalar_one_or_none()
@@ -105,8 +105,8 @@ async def update_application_status(
 async def get_vendor_stores(current_user=Depends(get_current_user),db:AsyncSession=Depends(get_db)):
     current_user_id =current_user.get("user_id")
 
-    query= (select(VendorApplication)
-            .where(VendorApplication.user_id==current_user_id))
+    query= (select(Store)
+            .where(Store.user_id==current_user_id))
 
     applications = (await db.execute(query)).scalars().all()
     
@@ -120,7 +120,7 @@ async def get_vendor_stores(current_user=Depends(get_current_user),db:AsyncSessi
 @vendor_router.get("/orders")
 async def get_vendor_orders(db:AsyncSession=Depends(get_db), current_user=Depends(get_current_user)):
     try:
-        query= select(VendorApplication).where(VendorApplication.user_id==current_user["user_id"])
+        query= select(Store).where(Store.user_id==current_user["user_id"])
         vendor= (await db.execute(query)).scalar_one_or_none()
         if not vendor:
             raise HTTPException(

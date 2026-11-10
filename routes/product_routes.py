@@ -5,7 +5,7 @@ from uuid import UUID
 from schemas.product_schema import ProductCreate,ProductUpdateStatus
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.ext.asyncio import AsyncSession
-from models import Product,VendorApplication
+from models import Product,Store
 from config import get_db
 from utils import get_current_user
 from sqlalchemy import select

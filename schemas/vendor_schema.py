@@ -17,13 +17,13 @@ class BankAccountDetails(BaseModel):
     bank_account_number:str = Field(...,max_length=10,min_length=10)
     bank_account_name:str
 
-class VendorApplicationSchema(BaseModel):
+class StoreSchema(BaseModel):
     store_name: str
     category:str
     description:str
     bank_details:BankAccountDetails
 
-class VendorApplicationWithId(VendorApplicationSchema):
+class StoreWithId(StoreSchema):
     id: UUID
     user_id: UUID
     status:str
@@ -31,10 +31,10 @@ class VendorApplicationWithId(VendorApplicationSchema):
     updated_at:datetime
     
 
-class VendorApplicationResponse(BaseModel):
+class StoreResponse(BaseModel):
     success:bool
     status_code:int
-    data:VendorApplicationWithId
+    data:StoreWithId
     message:str
 
 class ApplicationStatusUpdateEnums(str,Enum):

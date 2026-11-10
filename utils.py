@@ -1,4 +1,4 @@
-from schemas.vendor_schema import VendorApplicationSchema
+from schemas.vendor_schema import StoreSchema
 from schemas.auth_schema import GenerateOTP
 from datetime import datetime,timedelta
 from random import choices
@@ -67,7 +67,7 @@ def get_current_user(cred= Depends(bearer_scheme)):
         
 
 
-def format_vendor_response(application:VendorApplicationSchema):
+def format_vendor_response(application:StoreSchema):
     return {
             "store_name": application.store_name,
             "category": application.category,

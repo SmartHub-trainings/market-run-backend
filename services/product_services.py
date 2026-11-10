@@ -4,7 +4,7 @@ from sqlalchemy import select,func,or_,case
 from sqlalchemy.orm import selectinload
 from sqlalchemy.ext.asyncio import AsyncSession
 from uuid import UUID
-from models import Product,VendorApplication
+from models import Product,Store
 from math import ceil
 
 
@@ -18,7 +18,7 @@ async def get_product_by_id(db:AsyncSession,product_id:UUID)->Product:
 
 
 async def create_product_service(db:AsyncSession,body:ProductCreate,current_user_id:UUID):
-    store_query = select(VendorApplication).where(VendorApplication.id == body.store_id)
+    store_query = select(Store).where(Store.id == body.store_id)
     store = (await db.execute(store_query)).scalar_one_or_none()
     if not store:
         raise HTTPException(
@@ -69,7 +69,7 @@ async def get_all_products_service(
             or_(
                 Product.name.ilike(pattern),
                 Product.description.ilike(pattern),
-                Product.store.has(VendorApplication.store_name.ilike(pattern)),
+                Product.store.has(Store.store_name.ilike(pattern)),
             )
         )
         relevance= case(
@@ -77,7 +77,7 @@ async def get_all_products_service(
             (Product.name.ilike(f"{search_text}%"), 4),
             (Product.name.ilike(pattern), 3),
             (Product.description.ilike(pattern), 2),
-            (Product.store.has(VendorApplication.store_name.ilike(pattern)), 1),
+            (Product.store.has(Store.store_name.ilike(pattern)), 1),
             else_=0,
         )
     query= query.order_by(None)
