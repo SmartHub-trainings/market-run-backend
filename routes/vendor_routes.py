@@ -4,11 +4,13 @@ from schemas.vendor_schema import ApplicationStatusUpdate
 from schemas.vendor_schema import VendorApplicationSchema,VendorApplicationResponse
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.ext.asyncio import AsyncSession
-from models import VendorApplication
+from models import VendorApplication, Order, OrderItem, Product, User
 from config import get_db
 from utils import get_current_user, format_vendor_response
 from uuid import UUID
 from sqlalchemy import select
+from sqlalchemy.orm import selectinload, with_loader_criteria
+
 
 
 
@@ -115,7 +117,57 @@ async def get_vendor_stores(current_user=Depends(get_current_user),db:AsyncSessi
         "data": applications,
     }
     
+@vendor_router.get("/orders")
+async def get_vendor_orders(db:AsyncSession=Depends(get_db), current_user=Depends(get_current_user)):
+    try:
+        query= select(VendorApplication).where(VendorApplication.user_id==current_user["user_id"])
+        vendor= (await db.execute(query)).scalar_one_or_none()
+        if not vendor:
+            raise HTTPException(
+                status_code= 403,
+                detail= "Only approved vendors can access this endpoint"
+            )
+        if vendor.status != "approved":
+            raise HTTPException(
+                status_code= 403,
+                detail= "Only approved vendors can access this endpoint"
+            )
+        vendor_id= current_user["user_id"]
+        query= (select(Order)
+        .options(selectinload(Order.items)
+        .selectinload(OrderItem.product)
+        .selectinload(Product.user),
+        with_loader_criteria(OrderItem, OrderItem.product.has(Product.user_id==vendor_id),
+                include_aliases=True))
+        .where(Order.items.any(
+        OrderItem.product.has(
+            Product.user_id==vendor_id
+                )
+            )
+        )
+    )
+        orders= (await db.execute(query)).scalars().all()
 
+        return{
+        "message": "Vendor orders retrieved successfully",
+        "success": True,
+        "status_code": 200,
+        "data": orders,
+        }
+    except HTTPException as e:
+        print("get_vendor_orders_HTTP_error:", e)
+        raise HTTPException(
+            status_code= e.status_code or 500,
+            detail= e.detail or "An error occured while trying to get vendor orders"
+        )
+    except Exception as f:
+        print("get_vendor_orders_general_error:", f)
+        raise HTTPException(
+            status_code= 500,
+            detail= "Internal Server Error"
+        )
+
+        
     
 
 
