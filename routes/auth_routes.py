@@ -9,7 +9,7 @@ from schemas.vendor_schema import ApplicationStatusUpdate
 from sqlalchemy import select,delete
 from sqlalchemy.ext.asyncio import AsyncSession
 from config import password_context, get_db
-from secret import OTP_EXPIRATION, JWT_EXP_MINS, JWT_SECRET
+from secret import OTP_EXPIRATION, JWT_EXP_MINS, JWT_SECRET, conf
 from sqlalchemy.orm import selectinload
 import jwt
 from utils import generate_otp,get_current_user
@@ -17,17 +17,6 @@ from services.auth_services import (create_user_service,login_user_service,verif
 resend_otp_service,get_current_user_service)
 from fastapi_mail import ConnectionConfig, FastMail, MessageSchema, MessageType
 
-conf = ConnectionConfig(
-    MAIL_USERNAME="email",
-    MAIL_PASSWORD="password",
-    MAIL_FROM="email",
-    MAIL_PORT=587,
-    MAIL_SERVER="smtp.gmail.com",
-    MAIL_STARTTLS=True,
-    MAIL_SSL_TLS=False,
-    USE_CREDENTIALS=True,
-    VALIDATE_CERTS=True
-)
 
 mail = FastMail(conf)
 
