@@ -5,10 +5,14 @@ from fastapi import APIRouter, Depends
 from sqlalchemy import select,delete
 from config import get_db
 from schemas.order_schema import CartItemCreate,OrderCreate
-from models import CartItem,Order,OrderItem
+from models import CartItem,Order,OrderItem,User,Product
 from utils import get_current_user
 from sqlalchemy.orm import selectinload
 from services.product_services import get_product_by_id
+from secret import conf
+from fastapi_mail import FastMail, MessageSchema, MessageType
+
+mail= FastMail(conf)
 
 order_router = APIRouter(tags=["Orders"])
 
@@ -65,9 +69,16 @@ async def create_new_order_handler(payload:OrderCreate,
         items =payload.order_items
         PROCESSING_FEE_PCT=10
         sub_total = 0
+        vendors_email= []
         for item in items:
-            product = await get_product_by_id(db,item.product_id)
+            product_query = (select(Product).options(selectinload(Product.user))
+            .where(Product.id == item.product_id))
+            product = (await db.execute(product_query)).scalar_one_or_none()
+            if not product:
+                raise HTTPException(status_code=404,detail="product not found")
             sub_total += product.price*item.qty
+            vendor= product.user
+            vendors_email.append(vendor.email)
             # print("price",product.price)
         processing_fee = sub_total*PROCESSING_FEE_PCT/100
         total = processing_fee+sub_total
@@ -102,6 +113,29 @@ async def create_new_order_handler(payload:OrderCreate,
         await db.execute(delete_query)
         # print("before commit")
         await db.commit()
+
+        query= select(User).where(User.user_id==current_user["user_id"])
+        user= (await db.execute(query)).scalar_one_or_none()
+
+        message =MessageSchema(
+        subject="Order Confirmation.",
+        recipients=[user.email],
+        body=f"Hi {user.first_name}, your order has been placed successfully",
+        subtype=MessageType.plain
+        )
+
+        vendor= product.user
+
+        vendor_message =MessageSchema(
+        subject="New Order Received.",
+        recipients=vendors_email,
+        body=f"""Hi, you have received a new order, please login to your dashboard 
+        to view and process the order""",
+        subtype=MessageType.plain
+        )
+
+        await mail.send_message(message)
+        await mail.send_message(vendor_message)
         return {"message":"order create successfully","success":True,"status_code":201,"data":order}
 
             # pre_order_items.append({"product_id":product.id,"qty":item.qty,"unit_price":product.price,"order_id":order.id}
@@ -113,5 +147,6 @@ async def create_new_order_handler(payload:OrderCreate,
         raise HTTPException(status_code=500,detail="Something went wrong!")
 
 
+#Buyer receives confirmation email. Each vendor receives a new-order notification.
 
 
