@@ -4,15 +4,18 @@ from schemas.vendor_schema import ApplicationStatusUpdate
 from schemas.vendor_schema import StoreSchema,StoreResponse
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.ext.asyncio import AsyncSession
-from models import Store, Order, OrderItem, Product, User
+from models import Store, Order, OrderItem, Product
 from config import get_db
-from utils import get_current_user, format_vendor_response
+from utils import get_current_user, format_vendor_response,is_admin
 from uuid import UUID
 from sqlalchemy import select
 from sqlalchemy.orm import selectinload, with_loader_criteria
+from fastapi_mail import FastMail,MessageSchema, MessageType
+from secret import conf
 
 
 
+mail = FastMail(conf)
 
 
 vendor_router = APIRouter(tags=["Vendors"])
@@ -60,14 +63,15 @@ async def update_application_status(
     application_id:UUID,
     data: ApplicationStatusUpdate,
     db: AsyncSession = Depends(get_db),
+    user=Depends(is_admin)
 ):
     result = await db.execute(
-        select(Store).where(Store.id == application_id)
+        select(Store).options(selectinload(Store.user)).where(Store.id == application_id)
     )
 
-    application = result.scalar_one_or_none()
+    store = result.scalar_one_or_none()
 
-    if application is None:
+    if store is None:
         raise HTTPException(
             status_code=404,
             detail="Application not found",
@@ -80,22 +84,33 @@ async def update_application_status(
     #     )
 
 
-    application.status = "approved" if data.status=="accept" else "rejected"
+    store.status = "approved" if data.status=="accept" else "rejected"
     # if data.status== "accept":
     #     application.status = "approved"
     # else:
     #     application.status = "rejected"
+    vendor =store.user 
 
     await db.commit()
-    await db.refresh(application)
+    await db.refresh(store)
+    message =MessageSchema(
+            subject="Your Store has been Approved.",
+            recipients=[vendor.email],
+            body=f'Hi {vendor.first_name},Your store "{store.store_name}" has been approved. Please login to confirm.',
+            subtype=MessageType.plain
+
+        )
+
+    await mail.send_message(message)
+    # send email to the vendor
 
     return {
         "message": f"Application {data.status.value} successfully",
         "success": True,
         "status_code": 200,
         "data": {
-            "id": application.id,
-            "status": application.status,
+            "id": store.id,
+            "status": store.status,
         },
     }
 
@@ -108,13 +123,13 @@ async def get_vendor_stores(current_user=Depends(get_current_user),db:AsyncSessi
     query= (select(Store)
             .where(Store.user_id==current_user_id))
 
-    applications = (await db.execute(query)).scalars().all()
+    stores = (await db.execute(query)).scalars().all()
     
     return {
-        "message": "Vendor applications retrieved successfully",
+        "message": "Vendor stores retrieved successfully",
         "success": True,
         "status_code": 200,
-        "data": applications,
+        "data": stores,
     }
     
 @vendor_router.get("/orders")

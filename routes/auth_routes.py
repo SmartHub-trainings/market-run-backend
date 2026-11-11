@@ -9,13 +9,13 @@ from schemas.vendor_schema import ApplicationStatusUpdate
 from sqlalchemy import select,delete
 from sqlalchemy.ext.asyncio import AsyncSession
 from config import password_context, get_db
-from secret import OTP_EXPIRATION, JWT_EXP_MINS, JWT_SECRET, conf
+from secret import  conf
 from sqlalchemy.orm import selectinload
 import jwt
 from utils import generate_otp,get_current_user
 from services.auth_services import (create_user_service,login_user_service,verify_email_service,
 resend_otp_service,get_current_user_service)
-from fastapi_mail import ConnectionConfig, FastMail, MessageSchema, MessageType
+from fastapi_mail import FastMail, MessageSchema, MessageType
 
 
 mail = FastMail(conf)
@@ -39,7 +39,7 @@ async def register(payload: RegisterSchema, db:AsyncSession=Depends(get_db)):
 
         await mail.send_message(message)
         return {
-            "message":"User created successfully",
+            "message":"Your account has been created.Please, check your mail box for a code to verify your email.",
             "data":new_user
         }
     except HTTPException as e:

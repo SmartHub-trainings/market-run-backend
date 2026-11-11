@@ -65,7 +65,7 @@ async def login_user_service(db:AsyncSession, payload:LoginSchema):
         
     jwt_payload= {
         "user_id": str(user.user_id),
-        #"role": user.role,
+        "role": user.role,
         "exp": (datetime.now() + timedelta(minutes= JWT_EXP_MINS)).timestamp()
     }
 
