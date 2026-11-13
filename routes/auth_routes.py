@@ -15,9 +15,18 @@ import jwt
 from utils import generate_otp,get_current_user
 from services.auth_services import (create_user_service,login_user_service,verify_email_service,
 resend_otp_service,get_current_user_service)
-from fastapi_mail import FastMail, MessageSchema, MessageType
+from fastapi_mail import ConnectionConfig,FastMail, MessageSchema, MessageType
 
-
+conf = ConnectionConfig(
+    MAIL_USERNAME="Ulohobest7@gmail.com",
+     MAIL_PASSWORD="clufyjamfmyirhno",
+    MAIL_FROM="Ulohobest7@gmail.com",
+    MAIL_PORT=587,
+     MAIL_SERVER="smtp.gmail.com",
+    MAIL_STARTTLS=True,
+    MAIL_SSL_TLS=False,
+    USE_CREDENTIALS=True
+)
 mail = FastMail(conf)
 
 auth_router = APIRouter(tags=["Authentication"])
