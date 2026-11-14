@@ -2,7 +2,7 @@
 
 from services.product_services import create_product_service,get_product_by_id,get_all_products_service
 from uuid import UUID
-from schemas.product_schema import ProductCreate,ProductUpdateStatus
+from schemas.product_schema import ProductCreate,ProductUpdateStatus,ProductUpdate
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.ext.asyncio import AsyncSession
 from models import Product,Store
@@ -160,3 +160,49 @@ async def get_product_handler(product_id:UUID,db:AsyncSession=Depends(get_db)):
             detail= "Internal Server Error"
         )
     
+@product_router.put("/{product_id}")
+async def edit_product(
+    product_id:UUID,
+    product_data:ProductUpdate,
+    db:AsyncSession = Depends(get_db)
+):
+    result =await db.execute(
+        select(Product).where(Product.id == product_id)
+    )
+    product = result.scalar_one_or_none()
+    if not product:
+        raise HTTPException(
+            status_code =404,
+            detail ="Product not found"
+        )
+    product.name = product_data.name
+    product.price = product_data.price
+    product.description = product_data.description
+
+    await db.commit()
+    await db.refresh(product)
+
+    return product
+
+
+@product_router.delete("/{product_id}")
+async def delete_product(
+    product_id:UUID,
+    db: AsyncSession = Depends(get_db)
+):
+    result =await db.execute(
+        select(Product).where(Product.id == product_id)
+    )
+    product = result.scalar_one_or_none()
+    if not product:
+        raise HTTPException(
+            status_code=404,
+            details="Product not found"
+        )
+    await db.delete(product)
+    await db.commit()
+
+    return{
+        "message": "Product deleted sucessfully"
+
+    }

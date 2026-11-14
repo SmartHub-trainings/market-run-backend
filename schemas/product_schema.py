@@ -20,3 +20,14 @@ class ProductCreate(BaseModel):
 
 class ProductUpdateStatus(BaseModel):
     status:Literal['published','draft']='draft'
+
+
+class ProductUpdate(BaseModel):
+    name:str
+    description:str
+    price:float
+    category:str
+    images:list[str]|None=[]
+    stock:int
+    store_id:UUID
+    status:Literal['published','draft']='draft'
