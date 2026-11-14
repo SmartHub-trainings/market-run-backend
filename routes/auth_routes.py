@@ -15,18 +15,10 @@ import jwt
 from utils import generate_otp,get_current_user
 from services.auth_services import (create_user_service,login_user_service,verify_email_service,
 resend_otp_service,get_current_user_service)
-from fastapi_mail import ConnectionConfig,FastMail, MessageSchema, MessageType
+from fastapi_mail import FastMail, MessageSchema, MessageType
+from utils import send_email
 
-conf = ConnectionConfig(
-    MAIL_USERNAME="Ulohobest7@gmail.com",
-     MAIL_PASSWORD="clufyjamfmyirhno",
-    MAIL_FROM="Ulohobest7@gmail.com",
-    MAIL_PORT=587,
-     MAIL_SERVER="smtp.gmail.com",
-    MAIL_STARTTLS=True,
-    MAIL_SSL_TLS=False,
-    USE_CREDENTIALS=True
-)
+
 mail = FastMail(conf)
 
 auth_router = APIRouter(tags=["Authentication"])
@@ -119,15 +111,23 @@ async def resend_otp(body:ResendOTPSchema, db:AsyncSession=Depends(get_db)):
     try:
         new_otp,user= await resend_otp_service(db,body)
         ## send email to the user
-        message =MessageSchema(
-            subject="Verify Your email.",
-            recipients=[user.email],
+
+        message= await send_email(
+            subject= "Verify Your email.",
+            recipient= user.email,
             body=f"Hi {user.first_name}, please verify your email using the following code: {new_otp.otp}",
-            subtype=MessageType.plain
 
         )
+    
+        # message =MessageSchema(
+        #     subject="Verify Your email.",
+        #     recipients=[user.email],
+        #     body=f"Hi {user.first_name}, please verify your email using the following code: {new_otp.otp}",
+        #     subtype=MessageType.plain
 
-        await mail.send_message(message)
+        # )
+
+        #await mail.send_message(message)
 
         return {
             "message": "OTP resent to your email.",
