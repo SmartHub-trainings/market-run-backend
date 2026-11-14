@@ -136,7 +136,7 @@ async def create_new_order_handler(payload:OrderCreate,
 
         await mail.send_message(message)
         await mail.send_message(vendor_message)
-        return {"message":"order create successfully","success":True,"status_code":201,"data":order}
+        return {"message":"order created successfully","success":True,"status_code":201,"data":order}
 
             # pre_order_items.append({"product_id":product.id,"qty":item.qty,"unit_price":product.price,"order_id":order.id}
     except Exception as e:

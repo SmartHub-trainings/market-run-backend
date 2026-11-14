@@ -2,10 +2,12 @@ from schemas.vendor_schema import StoreSchema
 from schemas.auth_schema import GenerateOTP
 from datetime import datetime,timedelta
 from random import choices
-from secret import OTP_EXPIRATION, JWT_SECRET
+from secret import OTP_EXPIRATION, JWT_SECRET, conf
 import jwt
 from config import bearer_scheme
 from fastapi import HTTPException, Depends
+from fastapi_mail import MessageType, FastMail, MessageSchema
+
 
 
 def generate_otp()->GenerateOTP:
@@ -84,3 +86,16 @@ def format_vendor_response(application:StoreSchema):
         "created_at": application.created_at,
         "updated_at": application.updated_at
     }
+
+mail = FastMail(conf)
+
+
+async def send_email(subject:str, recipient:str, body:str):
+    message =MessageSchema(
+            subject=subject,
+            recipients=[recipient],
+            body=body,
+            subtype=MessageType.plain
+
+        )
+    await mail.send_message(message)

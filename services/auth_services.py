@@ -26,7 +26,11 @@ async def create_user_service(db:AsyncSession, payload:RegisterSchema)->tuple[Us
         #     last_name=payload.last_name,
         #     password=payload.password
         # )
-        new_user = User(**payload.model_dump(exclude={"password"}),
+
+        user_payload= payload.model_dump(exclude={"password", "confirm_password"})
+        #del user_payload["confirm_password"]
+
+        new_user = User(**user_payload,
                         password= password_context.hash(payload.password)
         )
         db.add(new_user)
