@@ -28,4 +28,5 @@ dependencies = [
     "fastapi-mail>=1.6.8",
     "alembic>=1.20.1",
     "phonenumbers>=9.0.43",
+    "boto3>=1.44.7",
 ]
